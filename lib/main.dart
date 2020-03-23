@@ -1,12 +1,7 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-// import 'package:async/async.dart';
-
-// const request = "https://api.hgbrasil.com/finance?format=json&key=b28fc5dc";
-const request = "https://economia.awesomeapi.com.br/all/USD-BRL,EUR-BRL";
+import 'package:my_financial_data/home_bloc.dart';
 
 void main() async {
   runApp(MaterialApp(
@@ -25,10 +20,6 @@ void main() async {
   ));
 }
 
-Future<Map> getData() async {
-  http.Response response = await http.get(request);
-  return json.decode(response.body);
-}
 
 class Home extends StatefulWidget {
   @override
@@ -36,48 +27,15 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final realController = TextEditingController();
-  final dolarController = TextEditingController();
-  final euroController = TextEditingController();
 
-  double dolar;
-  double euro;
+  HomeBloc bloc = HomeBloc();
 
   void _clearAll() {
-    realController.text = "";
-    dolarController.text = "";
-    euroController.text = "";
+    bloc.realController.text = "";
+    bloc.dolarController.text = "";
+    bloc.euroController.text = "";
   }
 
-  void _realChanged(String text) {
-     if(text.isEmpty) {
-      _clearAll();
-      return;
-    }
-    double real = double.parse(text);
-    dolarController.text = (real / dolar).toStringAsFixed(2);
-    euroController.text = (real / euro).toStringAsFixed(2);
-  }
-
-  void _dolarChanged(String text) {
-     if(text.isEmpty) {
-      _clearAll();
-      return;
-    }
-    double dolar = double.parse(text);
-    realController.text = (dolar * this.dolar).toStringAsFixed(2);
-    euroController.text = (dolar * this.dolar / euro).toStringAsFixed(2);
-  }
-
-  void _euroChanged(String text) {
-     if(text.isEmpty) {
-      _clearAll();
-      return;
-    }
-    double euro = double.parse(text);
-    realController.text = (euro * this.euro).toStringAsFixed(2);
-    dolarController.text = (euro * this.euro / dolar).toStringAsFixed(2);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +50,7 @@ class _HomeState extends State<Home> {
         ],
       ),
       body: FutureBuilder<Map>(
-        future: getData(),
+        future: bloc.getData(),
         builder: (context, snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.waiting:
@@ -108,8 +66,7 @@ class _HomeState extends State<Home> {
                         style: TextStyle(color: Colors.amber, fontSize: 25.0),
                         textAlign: TextAlign.center));
               } else {
-                dolar = double.parse(snapshot.data["USD"]["high"]);
-                euro = double.parse(snapshot.data["EUR"]["high"]);
+                bloc.setValue();
                 return SingleChildScrollView(
                   padding: EdgeInsets.all(10.0),
                   child: Column(
@@ -122,13 +79,13 @@ class _HomeState extends State<Home> {
                       ),
                       Divider(),
                       buildTextField(
-                          "Reais", "R\$", true, realController, _realChanged),
+                          "Reais", "R\$", true, bloc.realController, bloc.valueChanged),
                       Divider(),
-                      buildTextField("Dolares", "US\$", false, dolarController,
-                          _dolarChanged),
+                      buildTextField("Dolares", "US\$", false, bloc.dolarController,
+                          bloc.valueChanged),
                       Divider(),
                       buildTextField(
-                          "Euros", "€", false, euroController, _euroChanged)
+                          "Euros", "€", false, bloc.euroController, bloc.valueChanged)
                     ],
                   ),
                 );
